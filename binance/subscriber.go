@@ -65,14 +65,9 @@ func (s *Subscriber) Subscribe(topics []string) error {
 		return err
 	}
 
-	_, payload, err := conn.ReadMessage()
-	if err != nil {
-		return err
-	}
-
 	var resp Response
 
-	err = json.Unmarshal(payload, &resp)
+	err = s.readMsg(&resp)
 	if err != nil {
 		return err
 	}
@@ -96,14 +91,14 @@ func (s *Subscriber) UnSubscribe() error {
 	return s.sendMsg(&message)
 }
 
-func (s *Subscriber) Listen() (<-chan AggregateTrade, <-chan error) {
+func (s *Subscriber) Listen() (<-chan []byte, <-chan error) {
 	errorChan := make(chan error)
-	tickerChan := make(chan AggregateTrade)
+	payloadChan := make(chan []byte)
 
 	go func() {
 		defer func() {
 			close(errorChan)
-			close(tickerChan)
+			close(payloadChan)
 		}()
 
 		for {
@@ -111,20 +106,17 @@ func (s *Subscriber) Listen() (<-chan AggregateTrade, <-chan error) {
 			case <-s.unsubChan:
 				return
 			default:
-				var trade AggregateTrade
-
-				err := s.readMsg(&trade)
+				_, payload, err := s.conn.ReadMessage()
 				if err != nil {
 					errorChan <- err
-					continue
 				}
 
-				tickerChan <- trade
+				payloadChan <- payload
 			}
 		}
 	}()
 
-	return tickerChan, errorChan
+	return payloadChan, errorChan
 }
 
 func (s *Subscriber) sendMsg(v interface{}) error {
