@@ -11,8 +11,8 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/joho/godotenv"
-	"github.com/piatoss3612/trade-watcher/binance"
-	"github.com/piatoss3612/trade-watcher/producer"
+	"github.com/piatoss3612/trade-watcher/internal/binance"
+	"github.com/piatoss3612/trade-watcher/internal/producer"
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 		log.Fatalf("Error creating producer: %v", err)
 	}
 
-	prod := producer.New(p, "trades", true)
+	prod := producer.New(p, os.Getenv("KAFKA_TOPIC"), true)
 
 	stop := make(chan struct{})
 	sigChan := make(chan os.Signal, 1)
